@@ -4,10 +4,15 @@ import type { ObjectId } from "mongodb"
 
 export async function POST(request: Request) {
   try {
-    const { userEmail } = await request.json()
+    const body = await request.json()
+    const { userEmail, pdfId, pdfTitle } = body
 
     if (!userEmail) {
       return NextResponse.json({ error: "User email required" }, { status: 400 })
+    }
+
+    if (!pdfId || !pdfTitle) {
+      return NextResponse.json({ error: "PDF information required" }, { status: 400 })
     }
 
     const link = await getAvailablePaymentLink()

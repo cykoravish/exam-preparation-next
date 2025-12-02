@@ -11,8 +11,11 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 })
     }
 
-    if (user.isPremium) {
-      return NextResponse.json({ error: "Already a premium user" }, { status: 400 })
+    const body = await request.json()
+    const { pdfId } = body
+
+    if (!pdfId) {
+      return NextResponse.json({ error: "PDF ID required" }, { status: 400 })
     }
 
     const link = await getAssignedPaymentLink(user.email)
@@ -21,10 +24,19 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "No payment link found. Please get a payment link first." }, { status: 404 })
     }
 
+    const { getDatabase } = await import("@/lib/db-utils")
+    const db = await getDatabase()
+    const pdf = await db.collection("pdfs").findOne({ _id: new ObjectId(pdfId) })
+
+    if (!pdf) {
+      return NextResponse.json({ error: "PDF not found" }, { status: 404 })
+    }
+
     const userObjectId = new ObjectId(user.id)
     const linkObjectId = link._id as ObjectId
+    const pdfObjectId = new ObjectId(pdfId)
 
-    await createActivationRequest(userObjectId, user.email, user.name, linkObjectId)
+    await createActivationRequest(userObjectId, user.email, user.name, linkObjectId, pdfObjectId, pdf.title)
 
     return NextResponse.json({ success: true })
   } catch (error) {

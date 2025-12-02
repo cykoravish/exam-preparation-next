@@ -29,11 +29,26 @@ export function PDFGrid({ branch, semester, subject, user, onAuthRequired }: PDF
   const [loading, setLoading] = useState(true)
   const [showAuthModal, setShowAuthModal] = useState(false)
   const [showPaymentModal, setShowPaymentModal] = useState(false)
+  const [selectedPDF, setSelectedPDF] = useState<PDF | null>(null)
   const [viewingPDF, setViewingPDF] = useState<string | null>(null)
+  const [purchasedPDFs, setPurchasedPDFs] = useState<string[]>([])
 
   useEffect(() => {
     fetchPDFs()
-  }, [branch, semester, subject])
+    if (user) {
+      fetchPurchasedPDFs()
+    }
+  }, [branch, semester, subject, user])
+
+  const fetchPurchasedPDFs = async () => {
+    try {
+      const response = await fetch("/api/user/purchased-pdfs")
+      const data = await response.json()
+      setPurchasedPDFs(data.purchasedPDFs || [])
+    } catch (error) {
+      console.error("Failed to fetch purchased PDFs:", error)
+    }
+  }
 
   const fetchPDFs = async () => {
     setLoading(true)
@@ -50,48 +65,40 @@ export function PDFGrid({ branch, semester, subject, user, onAuthRequired }: PDF
     }
   }
 
+  const hasAccessToPDF = (pdf: PDF) => {
+    if (pdf.isFree) return true
+    if (!user) return false
+    return purchasedPDFs.includes(pdf._id)
+  }
+
   const handleView = (pdf: PDF) => {
-    // If PDF is free, anyone can view
-    if (pdf.isFree) {
+    if (hasAccessToPDF(pdf)) {
       setViewingPDF(pdf.cloudinaryUrl)
       return
     }
 
-    // If PDF is paid, check authentication and premium status
     if (!user) {
       setShowAuthModal(true)
       return
     }
 
-    if (!user.isPremium) {
-      setShowPaymentModal(true)
-      return
-    }
-
-    // User is premium, allow viewing
-    setViewingPDF(pdf.cloudinaryUrl)
+    setSelectedPDF(pdf)
+    setShowPaymentModal(true)
   }
 
   const handleDownload = async (pdf: PDF) => {
-    // If PDF is free, anyone can download
-    if (pdf.isFree) {
+    if (hasAccessToPDF(pdf)) {
       downloadPDF(pdf.cloudinaryUrl, pdf.title)
       return
     }
 
-    // If PDF is paid, check authentication and premium status
     if (!user) {
       setShowAuthModal(true)
       return
     }
 
-    if (!user.isPremium) {
-      setShowPaymentModal(true)
-      return
-    }
-
-    // User is premium, allow download
-    downloadPDF(pdf.cloudinaryUrl, pdf.title)
+    setSelectedPDF(pdf)
+    setShowPaymentModal(true)
   }
 
   const downloadPDF = async (url: string, title: string) => {
@@ -149,45 +156,58 @@ export function PDFGrid({ branch, semester, subject, user, onAuthRequired }: PDF
     <>
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-2xl font-bold text-transparent">
+          <h2 className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-xl font-bold text-transparent sm:text-2xl">
             {subject}
           </h2>
-          <span className="text-sm text-muted-foreground">
+          <span className="text-xs text-muted-foreground sm:text-sm">
             {pdfs.length} {pdfs.length === 1 ? "PDF" : "PDFs"} available
           </span>
         </div>
 
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {pdfs.map((pdf) => (
             <Card
               key={pdf._id}
-              className="group relative flex flex-col overflow-hidden border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 p-4 transition-all hover:shadow-lg hover:shadow-indigo-100 dark:border-indigo-900 dark:from-gray-800 dark:to-indigo-950/30 dark:hover:shadow-indigo-900/20"
+              className="group relative flex flex-col overflow-hidden border-indigo-100 bg-gradient-to-br from-white to-indigo-50/30 p-3 transition-all hover:shadow-lg hover:shadow-indigo-100 dark:border-indigo-900 dark:from-gray-800 dark:to-indigo-950/30 dark:hover:shadow-indigo-900/20 sm:p-4"
             >
               <div className="absolute right-0 top-0 h-20 w-20 bg-gradient-to-br from-indigo-500/10 to-purple-500/10 blur-2xl" />
 
-              <div className="relative mb-3 flex items-start justify-between">
-                <div className="flex-1">
-                  <h3 className="font-semibold leading-tight text-gray-900 dark:text-gray-100">{pdf.title}</h3>
+              <div className="relative mb-3 flex items-start justify-between gap-2">
+                <div className="flex-1 min-w-0">
+                  <h3 className="truncate font-semibold leading-tight text-gray-900 dark:text-gray-100 text-sm sm:text-base">
+                    {pdf.title}
+                  </h3>
                   <p className="mt-1 text-xs text-muted-foreground">{new Date(pdf.uploadedAt).toLocaleDateString()}</p>
                 </div>
-                {pdf.isFree ? (
-                  <span className="rounded-full bg-gradient-to-r from-green-500 to-emerald-500 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
-                    Free
-                  </span>
-                ) : (
-                  <span className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-2.5 py-1 text-xs font-medium text-white shadow-sm">
-                    Premium
-                  </span>
-                )}
+                <div className="flex-shrink-0">
+                  {pdf.isFree ? (
+                    <span className="rounded-full bg-gradient-to-r from-green-500 to-emerald-500 px-2 py-0.5 text-xs font-medium text-white shadow-sm sm:px-2.5 sm:py-1">
+                      Free
+                    </span>
+                  ) : hasAccessToPDF(pdf) ? (
+                    <span className="rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 px-2 py-0.5 text-xs font-medium text-white shadow-sm sm:px-2.5 sm:py-1">
+                      Owned
+                    </span>
+                  ) : (
+                    <span className="rounded-full bg-gradient-to-r from-indigo-600 to-purple-600 px-2 py-0.5 text-xs font-medium text-white shadow-sm sm:px-2.5 sm:py-1">
+                      Paid
+                    </span>
+                  )}
+                </div>
               </div>
 
               <div className="relative mt-auto flex gap-2">
                 <Button
                   onClick={() => handleView(pdf)}
-                  className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700"
+                  className="flex-1 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-700 hover:to-purple-700 text-xs sm:text-sm"
                   size="sm"
                 >
-                  <svg className="mr-2 h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg
+                    className="mr-1 h-3 w-3 sm:mr-2 sm:h-4 sm:w-4"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -207,9 +227,9 @@ export function PDFGrid({ branch, semester, subject, user, onAuthRequired }: PDF
                   onClick={() => handleDownload(pdf)}
                   variant="outline"
                   size="sm"
-                  className="border-indigo-200 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950"
+                  className="border-indigo-200 hover:bg-indigo-50 dark:border-indigo-800 dark:hover:bg-indigo-950 p-2"
                 >
-                  <svg className="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <svg className="h-3 w-3 sm:h-4 sm:w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path
                       strokeLinecap="round"
                       strokeLinejoin="round"
@@ -235,7 +255,17 @@ export function PDFGrid({ branch, semester, subject, user, onAuthRequired }: PDF
         />
       )}
 
-      {showPaymentModal && <PaymentModal onClose={() => setShowPaymentModal(false)} userEmail={user?.email || ""} />}
+      {showPaymentModal && selectedPDF && (
+        <PaymentModal
+          onClose={() => {
+            setShowPaymentModal(false)
+            setSelectedPDF(null)
+          }}
+          userEmail={user?.email || ""}
+          pdfId={selectedPDF._id}
+          pdfTitle={selectedPDF.title}
+        />
+      )}
 
       {viewingPDF && <PDFViewer url={viewingPDF} onClose={() => setViewingPDF(null)} />}
     </>

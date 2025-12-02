@@ -7,6 +7,7 @@ export interface User {
   password: string
   name: string
   isPremium: boolean
+  purchasedPDFs?: ObjectId[] // Track individual PDF purchases
   createdAt: Date
 }
 
@@ -47,6 +48,8 @@ export interface ActivationRequest {
   userEmail: string
   userName: string
   linkId: ObjectId
+  pdfId: ObjectId // Add PDF ID for per-PDF activation
+  pdfTitle: string // Add PDF title for display
   status: "pending" | "approved" | "rejected"
   createdAt: Date
   processedAt?: Date
@@ -139,16 +142,37 @@ export async function deletePaymentLink(id: ObjectId) {
   return db.collection<PaymentLink>("payment_links").deleteOne({ _id: id })
 }
 
-export async function createActivationRequest(userId: ObjectId, userEmail: string, userName: string, linkId: ObjectId) {
+export async function hasUserPurchasedPDF(userId: ObjectId, pdfId: ObjectId): Promise<boolean> {
   const db = await getDatabase()
-  return db.collection<ActivationRequest>("activation_requests").insertOne({
+  const user = await db.collection<User>("users").findOne({ _id: userId })
+  if (!user || !user.purchasedPDFs) return false
+  return user.purchasedPDFs.some((id) => id.toString() === pdfId.toString())
+}
+
+export async function createActivationRequest(
+  userId: ObjectId,
+  userEmail: string,
+  userName: string,
+  linkId: ObjectId,
+  pdfId: ObjectId,
+  pdfTitle: string,
+) {
+  const db = await getDatabase()
+
+  const doc = {
     userId,
     userEmail,
     userName,
     linkId,
-    status: "pending",
+    pdfId,
+    pdfTitle,
+    status: "pending" as const,
     createdAt: new Date(),
-  })
+  }
+
+  const result = await db.collection<ActivationRequest>("activation_requests").insertOne(doc)
+
+  return result
 }
 
 export async function getPendingActivationRequests() {
@@ -165,11 +189,11 @@ export async function getAllActivationRequests() {
   return db.collection<ActivationRequest>("activation_requests").find().sort({ createdAt: -1 }).toArray()
 }
 
-export async function approveActivationRequest(requestId: ObjectId, userId: ObjectId) {
+export async function approveActivationRequest(requestId: ObjectId, userId: ObjectId, pdfId: ObjectId) {
   const db = await getDatabase()
 
-  // Update user to premium
-  await db.collection<User>("users").updateOne({ _id: userId }, { $set: { isPremium: true } })
+  // Add PDF to user's purchased list
+  await db.collection<User>("users").updateOne({ _id: userId }, { $addToSet: { purchasedPDFs: pdfId } })
 
   // Mark request as approved
   await db

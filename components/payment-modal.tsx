@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button"
 interface PaymentModalProps {
   onClose: () => void
   userEmail: string
+  pdfId: string
+  pdfTitle: string
 }
 
-export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
+export function PaymentModal({ onClose, userEmail, pdfId, pdfTitle }: PaymentModalProps) {
   const [step, setStep] = useState<"info" | "payment" | "waiting">("info")
   const [loading, setLoading] = useState(false)
-  const [paymentLink, setPaymentLink] = useState("")
 
   const handleProceedToPayment = async () => {
     setLoading(true)
@@ -19,19 +20,17 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
       const response = await fetch("/api/payment/get-link", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userEmail }),
+        body: JSON.stringify({ userEmail, pdfId, pdfTitle }),
       })
 
       const data = await response.json()
 
       if (!response.ok) {
         alert(data.error || "No payment links available. Please contact admin.")
+        setLoading(false)
         return
       }
 
-      setPaymentLink(data.paymentLink)
-
-      // Open payment link in new tab
       window.open(data.paymentLink, "_blank")
       setStep("payment")
     } catch (error) {
@@ -47,6 +46,8 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
     try {
       const response = await fetch("/api/payment/request-activation", {
         method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ pdfId }),
       })
 
       if (!response.ok) {
@@ -64,10 +65,10 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
-      <div className="w-full max-w-md rounded-lg bg-gradient-to-br from-white to-indigo-50 p-6 shadow-2xl dark:from-gray-800 dark:to-indigo-950">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-2xl font-bold text-transparent">
-            Upgrade to Premium
+      <div className="max-h-[90vh] w-full max-w-md overflow-y-auto rounded-lg bg-gradient-to-br from-white to-indigo-50 p-4 shadow-2xl dark:from-gray-800 dark:to-indigo-950 sm:p-6">
+        <div className="mb-4 flex items-center justify-between sm:mb-6">
+          <h2 className="bg-gradient-to-r from-indigo-600 to-purple-600 bg-clip-text text-xl font-bold text-transparent sm:text-2xl">
+            Purchase PDF
           </h2>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <span className="sr-only">Close</span>
@@ -79,6 +80,10 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
 
         {step === "info" && (
           <div className="space-y-4">
+            <div className="rounded-lg border border-indigo-200 bg-indigo-50 p-3 dark:border-indigo-800 dark:bg-indigo-950">
+              <p className="text-sm font-medium text-indigo-900 dark:text-indigo-100">{pdfTitle}</p>
+            </div>
+
             <div className="rounded-lg border border-indigo-200 bg-gradient-to-br from-indigo-50 to-purple-50 p-4 dark:border-indigo-800 dark:from-indigo-950 dark:to-purple-950">
               <h3 className="mb-3 font-semibold text-indigo-900 dark:text-indigo-100">What you get:</h3>
               <ul className="space-y-2 text-sm">
@@ -94,7 +99,7 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="text-gray-700 dark:text-gray-300">Access to ALL premium PDFs</span>
+                  <span className="text-gray-700 dark:text-gray-300">Access to this PDF</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg
@@ -108,7 +113,7 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="text-gray-700 dark:text-gray-300">Lifetime access - Pay once, use forever</span>
+                  <span className="text-gray-700 dark:text-gray-300">Lifetime access - Pay once</span>
                 </li>
                 <li className="flex items-start gap-2">
                   <svg
@@ -122,30 +127,16 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
                       clipRule="evenodd"
                     />
                   </svg>
-                  <span className="text-gray-700 dark:text-gray-300">All branches and semesters covered</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <svg
-                    className="mt-0.5 h-5 w-5 flex-shrink-0 text-green-600 dark:text-green-400"
-                    fill="currentColor"
-                    viewBox="0 0 20 20"
-                  >
-                    <path
-                      fillRule="evenodd"
-                      d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z"
-                      clipRule="evenodd"
-                    />
-                  </svg>
-                  <span className="text-gray-700 dark:text-gray-300">New PDFs added regularly</span>
+                  <span className="text-gray-700 dark:text-gray-300">View and download anytime</span>
                 </li>
               </ul>
             </div>
 
             <div className="rounded-lg border border-blue-200 bg-blue-50 p-3 dark:border-blue-800 dark:bg-blue-950">
               <p className="text-sm text-blue-800 dark:text-blue-200">
-                <strong>Amount:</strong> ₹{process.env.NEXT_PUBLIC_PAYMENT_AMOUNT || "499"}
+                <strong>Amount:</strong> ₹{process.env.NEXT_PUBLIC_PAYMENT_AMOUNT || "99"}
               </p>
-              <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">One-time payment for lifetime access</p>
+              <p className="mt-1 text-xs text-blue-700 dark:text-blue-300">Per PDF purchase</p>
             </div>
 
             <Button
@@ -175,7 +166,7 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
                 <h3 className="font-semibold text-green-900 dark:text-green-100">Payment Link Opened</h3>
               </div>
               <p className="text-sm text-green-800 dark:text-green-200">
-                Complete your payment of ₹{process.env.NEXT_PUBLIC_PAYMENT_AMOUNT || "499"} in the new tab.
+                Complete your payment of ₹{process.env.NEXT_PUBLIC_PAYMENT_AMOUNT || "99"} in the new tab.
               </p>
             </div>
 
@@ -184,7 +175,7 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
               <ol className="list-inside list-decimal space-y-1 text-sm text-yellow-800 dark:text-yellow-200">
                 <li>Complete payment in the opened tab</li>
                 <li>Click "I've Completed Payment" below</li>
-                <li>Admin will verify and activate your premium access</li>
+                <li>Admin will verify and grant access to this PDF</li>
               </ol>
             </div>
 
@@ -218,7 +209,7 @@ export function PaymentModal({ onClose, userEmail }: PaymentModalProps) {
               </div>
               <p className="text-sm text-blue-800 dark:text-blue-200">
                 Your payment activation request has been submitted successfully. Admin will verify your payment and
-                activate your premium access soon.
+                grant access to this PDF soon.
               </p>
             </div>
 

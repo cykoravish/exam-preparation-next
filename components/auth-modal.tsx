@@ -55,22 +55,24 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
   }
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-      <div className="w-full max-w-md rounded-lg bg-background p-6 shadow-lg">
-        <div className="mb-6 flex items-center justify-between">
-          <h2 className="text-2xl font-bold">{isLogin ? "Login" : "Sign Up"}</h2>
-          <Button variant="ghost" size="icon" onClick={onClose}>
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+      <div className="w-full max-w-md rounded-lg bg-background p-4 shadow-lg sm:p-6">
+        <div className="mb-4 flex items-center justify-between sm:mb-6">
+          <h2 className="text-xl font-bold sm:text-2xl">{isLogin ? "Login" : "Sign Up"}</h2>
+          <Button variant="ghost" size="icon" onClick={onClose} className="h-8 w-8 sm:h-10 sm:w-10">
             <span className="sr-only">Close</span>
-            <svg className="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <svg className="h-4 w-4 sm:h-5 sm:w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </Button>
         </div>
 
-        <form onSubmit={handleSubmit} className="space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-3 sm:space-y-4">
           {!isLogin && (
             <div>
-              <Label htmlFor="name">Name</Label>
+              <Label htmlFor="name" className="text-sm">
+                Name
+              </Label>
               <Input
                 id="name"
                 type="text"
@@ -78,12 +80,15 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required={!isLogin}
+                className="mt-1"
               />
             </div>
           )}
 
           <div>
-            <Label htmlFor="email">Email</Label>
+            <Label htmlFor="email" className="text-sm">
+              Email
+            </Label>
             <Input
               id="email"
               type="email"
@@ -91,11 +96,14 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
               required
+              className="mt-1"
             />
           </div>
 
           <div>
-            <Label htmlFor="password">Password</Label>
+            <Label htmlFor="password" className="text-sm">
+              Password
+            </Label>
             <Input
               id="password"
               type="password"
@@ -103,18 +111,19 @@ export function AuthModal({ mode, onClose, onSuccess }: AuthModalProps) {
               value={formData.password}
               onChange={(e) => setFormData({ ...formData, password: e.target.value })}
               required
+              className="mt-1"
             />
             {!isLogin && <p className="mt-1 text-xs text-muted-foreground">At least 6 characters</p>}
           </div>
 
-          {error && <div className="rounded-md bg-destructive/10 p-3 text-sm text-destructive">{error}</div>}
+          {error && <div className="rounded-md bg-destructive/10 p-2 text-sm text-destructive sm:p-3">{error}</div>}
 
           <Button type="submit" className="w-full" disabled={loading}>
             {loading ? "Please wait..." : isLogin ? "Login" : "Sign Up"}
           </Button>
         </form>
 
-        <div className="mt-4 text-center text-sm">
+        <div className="mt-3 text-center text-sm sm:mt-4">
           {isLogin ? "Don't have an account? " : "Already have an account? "}
           <button
             type="button"
