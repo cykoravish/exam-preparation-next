@@ -16,11 +16,9 @@ export async function GET() {
         createdAt: req.createdAt?.toISOString(),
         processedAt: req.processedAt?.toISOString(),
       }
-      console.log("[v0] Serialized request:", serialized)
       return serialized
     })
 
-    console.log("[v0] Returning requests:", serializedRequests.length)
     return NextResponse.json({ requests: serializedRequests })
   } catch (error) {
     console.error("[v0] Failed to fetch activation requests:", error)

@@ -6,10 +6,7 @@ export async function POST(request: Request) {
   try {
     const { requestId, userId } = await request.json()
 
-    console.log("[v0] Approve activation request:", { requestId, userId })
-
     if (!requestId || !userId) {
-      console.error("[v0] Missing IDs:", { requestId, userId })
       return NextResponse.json({ error: "Request ID and User ID required" }, { status: 400 })
     }
 
