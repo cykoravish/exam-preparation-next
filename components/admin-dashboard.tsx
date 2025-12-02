@@ -63,7 +63,7 @@ export function AdminDashboard() {
   const [filePreview, setFilePreview] = useState("")
   const [uploadError, setUploadError] = useState("")
   const [uploadSuccess, setUploadSuccess] = useState("")
-  const [uploadForm, setUploadForm] = useState({
+  const [uploadForm, setUploadForm] = useState<any>({
     title: "",
     branch: "",
     semester: "",
@@ -253,7 +253,6 @@ export function AdminDashboard() {
       fetchActivationRequests()
     } catch (error) {
       console.error("[v0] Approval error:", error)
-      alert(`Failed to approve activation: ${error.message}`)
     }
   }
 
