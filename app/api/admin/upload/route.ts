@@ -8,6 +8,13 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET,
 })
 
+function slugify(value: string) {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-") 
+    .replace(/^-+|-+$/g, "")
+}
+
 export async function POST(request: NextRequest) {
   try {
     const formData = await request.formData()
@@ -22,6 +29,12 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 })
     }
 
+    const safeBranch = slugify(branch)
+    const safeSubject = slugify(subject)
+    const safeTitle = slugify(title)
+
+    const publicId = `${safeBranch}-${semester}-${safeSubject}-${Date.now()}`
+
     // Convert file to buffer
     const bytes = await file.arrayBuffer()
     const buffer = Buffer.from(bytes)
@@ -33,7 +46,7 @@ export async function POST(request: NextRequest) {
           {
             resource_type: "raw",
             folder: "lu-foet-notes",
-            public_id: `${branch}-${semester}-${subject}-${Date.now()}.pdf`,
+            public_id: publicId,
             format: "pdf",
           },
           (error, result) => {
